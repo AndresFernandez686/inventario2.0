@@ -2,7 +2,7 @@
 import streamlit as st
 from datetime import date
 
-from persistence import (
+from persistencia import (
     cargar_inventario, guardar_inventario, guardar_historial,
     cargar_historial, cargar_catalogo_delivery, guardar_catalogo_delivery,
     guardar_venta_delivery, cargar_ventas_delivery
