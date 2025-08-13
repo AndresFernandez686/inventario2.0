@@ -1,4 +1,4 @@
-#
+
 import pandas as pd
 
 def df_to_csv_bytes(df: pd.DataFrame) -> bytes:
