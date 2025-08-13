@@ -17,12 +17,15 @@ def guardar_inventario(inventario):
     with open(INVENTARIO_FILE, "w", encoding="utf-8") as f:
         json.dump(inventario, f, ensure_ascii=False, indent=2)
 
-def guardar_historial(usuario, inventario):
-    hoy = str(date.today())
+def guardar_historial(fecha, usuario, categoria, producto, cantidad, modo):
+    """Guarda un registro detallado del movimiento de inventario."""
     registro = {
-        "fecha": hoy,
+        "fecha": str(fecha),
         "usuario": usuario,
-        "inventario": inventario
+        "categoria": categoria,
+        "producto": producto,
+        "cantidad": cantidad,
+        "modo": modo
     }
     historial = []
     if os.path.exists(HISTORIAL_FILE):
