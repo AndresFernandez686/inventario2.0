@@ -1,4 +1,4 @@
-
+#Utilidades generales (conversiones de datos y helpers)
 import pandas as pd
 
 def df_to_csv_bytes(df: pd.DataFrame) -> bytes:
