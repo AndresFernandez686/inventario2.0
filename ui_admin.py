@@ -1,7 +1,7 @@
-#UI y logica para administradores (inventario,historial,delivery)
 import streamlit as st
 from datetime import date
 from utils import df_to_csv_bytes
+import pandas as pd
 
 def admin_inventario_ui(inventario):
     st.header("Inventario total por categoría")
@@ -22,7 +22,6 @@ def admin_inventario_ui(inventario):
     st.divider()
     st.subheader("Descargar inventarios por categoría (CSV)")
     for categoria, productos in inventario.items():
-        import pandas as pd
         df = pd.DataFrame({
             "Producto": list(productos.keys()),
             "Cantidad": list(productos.values())
@@ -35,26 +34,32 @@ def admin_inventario_ui(inventario):
             mime="text/csv"
         )
 
-def admin_historial_ui(cargar_historial):
+def admin_historial_ui(historial_json):
     st.header("📅 Historial de cargas (por empleado / mes)")
-    historial = cargar_historial()
-    if historial.empty:
+    import pandas as pd
+
+    if not historial_json:
         st.info("Aún no hay registros en el historial.")
         return
+
+    historial = pd.DataFrame(historial_json)
+    # Normaliza nombres columna
+    if "fecha" in historial.columns:
+        historial["Fecha"] = pd.to_datetime(historial["fecha"])
+    if "usuario" in historial.columns:
+        historial["Usuario"] = historial["usuario"]
 
     empleados = ["Todos"] + sorted(historial["Usuario"].dropna().unique().tolist())
     empleado_sel = st.selectbox("Empleado", empleados)
     año = st.number_input("Año", min_value=2000, max_value=2100, value=date.today().year)
     mes = st.number_input("Mes", min_value=1, max_value=12, value=date.today().month)
 
-    filtro = historial.copy()
-    filtro = filtro[(filtro["Fecha"].dt.year == año) & (filtro["Fecha"].dt.month == mes)]
+    filtro = historial[(historial["Fecha"].dt.year == año) & (historial["Fecha"].dt.month == mes)]
     if empleado_sel != "Todos":
         filtro = filtro[filtro["Usuario"] == empleado_sel]
 
     if not filtro.empty:
         st.dataframe(filtro.sort_values("Fecha"))
-        from utils import df_to_csv_bytes
         csv_bytes = df_to_csv_bytes(filtro)
         st.download_button(
             label="Descargar historial filtrado (CSV)",
@@ -91,7 +96,6 @@ def admin_delivery_ui(cargar_catalogo_delivery, guardar_catalogo_delivery, carga
 
     if catalogo:
         st.write("Productos actuales:")
-        import pandas as pd
         df_cat = pd.DataFrame(catalogo)
         st.dataframe(df_cat)
 
@@ -101,17 +105,17 @@ def admin_delivery_ui(cargar_catalogo_delivery, guardar_catalogo_delivery, carga
         idx = nombres.index(sel)
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            nuevo_activo = st.checkbox("Activo", value=catalogo[idx].get("activo", True), key="edit_activo")
+            nuevo_activo = st.checkbox("Activo", value=catalogo[idx].get("activo", True), key=f"edit_activo_{idx}")
         with col2:
-            nuevo_promo = st.checkbox("Promoción", value=catalogo[idx].get("es_promocion", False), key="edit_promo")
+            nuevo_promo = st.checkbox("Promoción", value=catalogo[idx].get("es_promocion", False), key=f"edit_promo_{idx}")
         with col3:
-            if st.button("Guardar cambios"):
+            if st.button("Guardar cambios", key=f"save_{idx}"):
                 catalogo[idx]["activo"] = nuevo_activo
                 catalogo[idx]["es_promocion"] = nuevo_promo
                 guardar_catalogo_delivery(catalogo)
                 st.success("Cambios guardados.")
         with col4:
-            if st.button("Eliminar producto"):
+            if st.button("Eliminar producto", key=f"delete_{idx}"):
                 catalogo.pop(idx)
                 guardar_catalogo_delivery(catalogo)
                 st.success("Producto eliminado del catálogo.")
@@ -120,10 +124,17 @@ def admin_delivery_ui(cargar_catalogo_delivery, guardar_catalogo_delivery, carga
 
     st.divider()
     st.subheader("Ventas registradas de delivery")
-    ventas = cargar_ventas_delivery()
-    if ventas.empty:
+    ventas_json = cargar_ventas_delivery()
+    if not ventas_json:
         st.info("Aún no hay ventas registradas.")
         return
+
+    ventas = pd.DataFrame(ventas_json)
+    # Normaliza columnas
+    if "fecha" in ventas.columns:
+        ventas["Fecha"] = pd.to_datetime(ventas["fecha"])
+    if "usuario" in ventas.columns:
+        ventas["Usuario"] = ventas["usuario"]
 
     empleados = ["Todos"] + sorted(ventas["Usuario"].dropna().unique().tolist())
     año = st.number_input("Año (ventas)", min_value=2000, max_value=2100, value=date.today().year, key="anio_deliv")
@@ -136,7 +147,6 @@ def admin_delivery_ui(cargar_catalogo_delivery, guardar_catalogo_delivery, carga
 
     if not filtro.empty:
         st.dataframe(filtro.sort_values("Fecha"))
-        from utils import df_to_csv_bytes
         csv_bytes = df_to_csv_bytes(filtro)
         st.download_button(
             label="Descargar ventas de delivery (CSV)",
