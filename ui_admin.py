@@ -38,7 +38,8 @@ def admin_historial_ui(historial_json):
     st.header("📅 Historial de cargas (por empleado / mes)")
     import pandas as pd
 
-    if not historial_json:
+    # Validación robusta para evitar error DataFrame constructor not properly called!
+    if not historial_json or not isinstance(historial_json, list) or not all(isinstance(e, dict) for e in historial_json):
         st.info("Aún no hay registros en el historial.")
         return
 
@@ -125,7 +126,8 @@ def admin_delivery_ui(cargar_catalogo_delivery, guardar_catalogo_delivery, carga
     st.divider()
     st.subheader("Ventas registradas de delivery")
     ventas_json = cargar_ventas_delivery()
-    if not ventas_json:
+    # Validación robusta para evitar error DataFrame constructor not properly called!
+    if not ventas_json or not isinstance(ventas_json, list) or not all(isinstance(e, dict) for e in ventas_json):
         st.info("Aún no hay ventas registradas.")
         return
 
