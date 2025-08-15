@@ -27,10 +27,19 @@ def empleado_inventario_ui(inventario, usuario, opciones_valde, guardar_inventar
                 st.markdown("### Estado de hasta 6 baldes:")
                 estados_baldes = []
                 for n in range(1, 7):
+                    key_balde = f"{producto_seleccionado}_balde_{n}_{fecha_carga}_{usuario}"
+                    # Intenta mostrar el valor previo si existe, si no, muestra el valor guardado en el inventario si existe, si no "Vacío"
+                    valor_previo = st.session_state.get(key_balde, None)
+                    # Si hay valor guardado en inventario, úsalo (sólo si no hay uno en session_state)
+                    valor_guardado = None
+                    if isinstance(productos[producto_seleccionado], list) and len(productos[producto_seleccionado]) >= n:
+                        valor_guardado = productos[producto_seleccionado][n-1]
+                    valor_balde = valor_previo if valor_previo is not None else (valor_guardado if valor_guardado is not None else "Vacío")
                     opcion = st.selectbox(
                         f"Balde {n}",
                         list(opciones_valde.keys()),
-                        key=f"{producto_seleccionado}_balde_{n}"
+                        index=list(opciones_valde.keys()).index(valor_balde) if valor_balde in opciones_valde else 0,
+                        key=key_balde
                     )
                     estados_baldes.append(opcion)
 
@@ -42,6 +51,10 @@ def empleado_inventario_ui(inventario, usuario, opciones_valde, guardar_inventar
                     productos[producto_seleccionado] = estados_baldes.copy()
                     guardar_inventario(inventario)
                     guardar_historial(fecha_carga, usuario, categoria, producto_seleccionado, estados_baldes, modo_actualizacion)
+                    # Actualiza los selectbox en la sesión para que persistan
+                    for n in range(1, 7):
+                        key_balde = f"{producto_seleccionado}_balde_{n}_{fecha_carga}_{usuario}"
+                        st.session_state[key_balde] = estados_baldes[n-1]
                     st.success(f"Actualizado. Estado actual: {', '.join(estados_baldes)}")
 
                 st.write("Inventario actual:")
