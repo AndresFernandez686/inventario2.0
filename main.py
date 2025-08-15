@@ -139,10 +139,10 @@ productos_por_categoria = {
 }
 
 opciones_valde = {
-    "Vacío": 0.0,
-    "Casi lleno": 0.3,
-    "Medio lleno": 3.5,
-    "Valde lleno": 7.8
+   "Vacío": "Vacío",
+    "Casi lleno": "Casi lleno",
+    "Medio lleno": "Medio lleno",
+    "Valde lleno": "Valde lleno"
 }
 
 def main():
