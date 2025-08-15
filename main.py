@@ -138,8 +138,9 @@ productos_por_categoria = {
     }
 }
 
+# Opciones de valde como texto literal
 opciones_valde = {
-   "Vacío": "Vacío",
+    "Vacío": "Vacío",
     "Casi lleno": "Casi lleno",
     "Medio lleno": "Medio lleno",
     "Valde lleno": "Valde lleno"
