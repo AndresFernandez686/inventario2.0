@@ -1,4 +1,4 @@
-# UI y lógica de empleados (Inventario, delivery)
+# UI y lógica de empleados (Inventario)
 import streamlit as st
 from datetime import date
 from utils import df_to_csv_bytes
@@ -23,17 +23,35 @@ def empleado_inventario_ui(inventario, usuario, opciones_valde, guardar_inventar
                 key=f"modo_{categoria}_{producto_seleccionado}"
             )
 
+            # ==========================
+            # LÓGICA PARA "POR KILOS"
+            # ==========================
             if categoria == "Por Kilos":
-                st.markdown("### Estado de hasta 6 baldes:")
+                st.markdown("### Cantidad de baldes a registrar:")
+                num_baldes = st.number_input(
+                    "Número de baldes",
+                    min_value=1,
+                    max_value=20,
+                    value=len(productos[producto_seleccionado]) if isinstance(productos[producto_seleccionado], list) else 1,
+                    step=1,
+                    key=f"num_baldes_{producto_seleccionado}_{fecha_carga}_{usuario}"
+                )
+
+                # Eliminar baldes sobrantes de session_state si el número bajó
+                for n in range(num_baldes + 1, 21):  # hasta 20 máximo
+                    key_balde_sobrante = f"{producto_seleccionado}_balde_{n}_{fecha_carga}_{usuario}"
+                    if key_balde_sobrante in st.session_state:
+                        del st.session_state[key_balde_sobrante]
+
                 estados_baldes = []
-                for n in range(1, 7):
+                for n in range(1, num_baldes + 1):
                     key_balde = f"{producto_seleccionado}_balde_{n}_{fecha_carga}_{usuario}"
-                    # Inicializa el valor solo si no existe
                     if key_balde not in st.session_state:
                         valor_guardado = None
                         if isinstance(productos[producto_seleccionado], list) and len(productos[producto_seleccionado]) >= n:
                             valor_guardado = productos[producto_seleccionado][n-1]
                         st.session_state[key_balde] = valor_guardado if valor_guardado is not None else "Vacío"
+
                     opcion = st.selectbox(
                         f"Balde {n}",
                         list(opciones_valde.keys()),
@@ -46,7 +64,12 @@ def empleado_inventario_ui(inventario, usuario, opciones_valde, guardar_inventar
                     f"Actualizar {producto_seleccionado} ({categoria})",
                     key=f"btn_{categoria}_{producto_seleccionado}"
                 ):
+                    # Guardar solo la cantidad de baldes seleccionados
                     productos[producto_seleccionado] = estados_baldes.copy()
+                    # Eliminar sobrantes si antes había más baldes guardados
+                    if isinstance(productos[producto_seleccionado], list) and len(productos[producto_seleccionado]) > num_baldes:
+                        productos[producto_seleccionado] = productos[producto_seleccionado][:num_baldes]
+
                     guardar_inventario(inventario)
                     guardar_historial(
                         fecha_carga, usuario, categoria, producto_seleccionado, estados_baldes, modo_actualizacion
@@ -55,18 +78,13 @@ def empleado_inventario_ui(inventario, usuario, opciones_valde, guardar_inventar
 
                 st.write("Inventario actual:")
                 for p, c in productos.items():
-                    if isinstance(c, list):
-                        # Solo muestra "Vacío" si fue seleccionado explícitamente
-                        seleccionados = [x for x in c if x != "Vacío" or c.count("Vacío") > 0]
-                        # Pero solo mostramos "Vacío" si el usuario explícitamente lo eligió en algún balde
-                        # (en la práctica, esto ya pasa con el filtro anterior, pero lo dejamos claro)
-                        seleccionados = [x for i, x in enumerate(c) if x != "Vacío" or (x == "Vacío" and c[i] == "Vacío")]
-                        if seleccionados:
-                            st.write(f"- {p}: {', '.join([x for x in c if x != 'Vacío'] + ([x for x in c if x == 'Vacío'] if any(x == 'Vacío' for x in c) else []))}")
-                        else:
-                            st.write(f"- {p}: ")
+                    if isinstance(c, list) and c:
+                        estados = [x for x in c if x != "Vacío"]
+                        if any(x == "Vacío" for x in c):
+                            estados.append("Vacío")
+                        st.write(f"- {p}: {', '.join(estados) if estados else 'Vacío'}")
                     else:
-                        st.write(f"- {p}: {c}")
+                        st.write(f"- {p}: Vacío")
 
             else:
                 cantidad = st.number_input("Cantidad (unidades)", min_value=0, step=1, key=f"cant_{categoria}_{producto_seleccionado}")
@@ -88,36 +106,3 @@ def empleado_inventario_ui(inventario, usuario, opciones_valde, guardar_inventar
                 st.write("Inventario actual:")
                 for p, c in productos.items():
                     st.write(f"- {p}: {c if c > 0 else 'Vacío'}")
-
-def empleado_delivery_ui(usuario, cargar_catalogo_delivery, guardar_venta_delivery, cargar_ventas_delivery):
-    st.header("Delivery")
-    catalogo = cargar_catalogo_delivery()
-    activos = [item for item in catalogo if item.get("activo", True)]
-
-    if not activos:
-        st.info("No hay productos de delivery activos. Pide al administrador que agregue opciones.")
-        return
-
-    fecha_venta = st.date_input("Fecha de la venta", value=date.today(), key="fecha_deliv")
-    opciones = [f"{it['nombre']} {'(PROMO)' if it.get('es_promocion', False) else ''}" for it in activos]
-    seleccion = st.selectbox("Producto de delivery", opciones)
-    idx = opciones.index(seleccion)
-    item_sel = activos[idx]
-    cantidad = st.number_input("Cantidad vendida", min_value=1, step=1)
-
-    if st.button("Registrar venta de delivery"):
-        guardar_venta_delivery(
-            fecha_venta,
-            usuario,
-            item_sel["nombre"],
-            cantidad,
-            item_sel.get("es_promocion", False)
-        )
-        st.success("Venta registrada con éxito ✅")
-
-    ventas = cargar_ventas_delivery()
-    if not ventas.empty:
-        ventas_hoy = ventas[(ventas["Usuario"] == usuario) & (ventas["Fecha"].dt.date == date.today())]
-        if not ventas_hoy.empty:
-            st.subheader("Tus ventas de delivery hoy")
-            st.dataframe(ventas_hoy)
