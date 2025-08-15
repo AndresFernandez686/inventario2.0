@@ -56,7 +56,15 @@ def empleado_inventario_ui(inventario, usuario, opciones_valde, guardar_inventar
                 st.write("Inventario actual:")
                 for p, c in productos.items():
                     if isinstance(c, list):
-                        st.write(f"- {p}: {', '.join(c)}")
+                        # Solo muestra "Vacío" si fue seleccionado explícitamente
+                        seleccionados = [x for x in c if x != "Vacío" or c.count("Vacío") > 0]
+                        # Pero solo mostramos "Vacío" si el usuario explícitamente lo eligió en algún balde
+                        # (en la práctica, esto ya pasa con el filtro anterior, pero lo dejamos claro)
+                        seleccionados = [x for i, x in enumerate(c) if x != "Vacío" or (x == "Vacío" and c[i] == "Vacío")]
+                        if seleccionados:
+                            st.write(f"- {p}: {', '.join([x for x in c if x != 'Vacío'] + ([x for x in c if x == 'Vacío'] if any(x == 'Vacío' for x in c) else []))}")
+                        else:
+                            st.write(f"- {p}: ")
                     else:
                         st.write(f"- {p}: {c}")
 
