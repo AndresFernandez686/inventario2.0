@@ -1,4 +1,4 @@
-#UI y logica de empleados (Inventario, delivery)
+# UI y lógica de empleados (Inventario, delivery)
 import streamlit as st
 from datetime import date
 from utils import df_to_csv_bytes
@@ -24,32 +24,32 @@ def empleado_inventario_ui(inventario, usuario, opciones_valde, guardar_inventar
             )
 
             if categoria == "Por Kilos":
-                st.markdown("### Estado de hasta 6 baldes (kilos):")
-                total_kilos = 0.0
+                st.markdown("### Estado de hasta 6 baldes:")
+                estados_baldes = []
                 for n in range(1, 7):
                     opcion = st.selectbox(
                         f"Balde {n}",
                         list(opciones_valde.keys()),
                         key=f"{producto_seleccionado}_balde_{n}"
                     )
-                    total_kilos += opciones_valde[opcion]
+                    estados_baldes.append(opcion)
 
                 if st.button(
                     f"Actualizar {producto_seleccionado} ({categoria})",
                     key=f"btn_{categoria}_{producto_seleccionado}"
                 ):
-                    total_kilos = max(0.0, total_kilos)
-                    if modo_actualizacion == "Añadir":
-                        productos[producto_seleccionado] += total_kilos
-                    else:
-                        productos[producto_seleccionado] = total_kilos
+                    # Guarda los estados como lista de textos
+                    productos[producto_seleccionado] = estados_baldes.copy()
                     guardar_inventario(inventario)
-                    guardar_historial(fecha_carga, usuario, categoria, producto_seleccionado, total_kilos, modo_actualizacion)
-                    st.success(f"Actualizado. Nuevo stock: {productos[producto_seleccionado]:.2f} kg")
+                    guardar_historial(fecha_carga, usuario, categoria, producto_seleccionado, estados_baldes, modo_actualizacion)
+                    st.success(f"Actualizado. Estado actual: {', '.join(estados_baldes)}")
 
                 st.write("Inventario actual:")
                 for p, c in productos.items():
-                    st.write(f"- {p}: {f'{c:.2f} kilos' if c > 0 else 'Vacío'}")
+                    if isinstance(c, list):
+                        st.write(f"- {p}: {', '.join(c)}")
+                    else:
+                        st.write(f"- {p}: {c}")
 
             else:
                 cantidad = st.number_input("Cantidad (unidades)", min_value=0, step=1, key=f"cant_{categoria}_{producto_seleccionado}")
