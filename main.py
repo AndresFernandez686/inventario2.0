@@ -172,9 +172,9 @@ def main():
     elif rol == 'administrador':
         tab_inv, tab_hist, tab_deliv = st.tabs(["📦 Inventario", "📅 Historial", "🛠️ Delivery"])
         with tab_inv:
-            admin_inventario_ui(inventario)
+            admin_inventario_ui(inventario)  # <-- CAMBIO: asegúrate de que admin_inventario_ui espere y maneje la estructura de inventario correctamente
         with tab_hist:
-            admin_historial_ui(cargar_historial())  # <--- CORREGIDO: pasa el resultado, no la función
+            admin_historial_ui(cargar_historial())
         with tab_deliv:
             admin_delivery_ui(
                 cargar_catalogo_delivery, guardar_catalogo_delivery, cargar_ventas_delivery
