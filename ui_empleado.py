@@ -24,9 +24,19 @@ def empleado_inventario_ui(inventario, usuario, opciones_valde, guardar_inventar
             )
 
             if categoria == "Por Kilos":
-                st.markdown("### Estado de hasta 6 baldes:")
+                st.markdown("### Selecciona la cantidad de baldes a registrar:")
+                num_baldes = st.number_input(
+                    "Cantidad de baldes",
+                    min_value=1,
+                    max_value=6,
+                    value=6,
+                    step=1,
+                    key=f"num_baldes_{producto_seleccionado}_{fecha_carga}_{usuario}"
+                )
+                st.markdown(f"### Estado de hasta {num_baldes} baldes:")
+
                 estados_baldes = []
-                for n in range(1, 7):
+                for n in range(1, num_baldes + 1):
                     key_balde = f"{producto_seleccionado}_balde_{n}_{fecha_carga}_{usuario}"
                     # Inicializa el valor solo si no existe
                     if key_balde not in st.session_state:
@@ -46,6 +56,7 @@ def empleado_inventario_ui(inventario, usuario, opciones_valde, guardar_inventar
                     f"Actualizar {producto_seleccionado} ({categoria})",
                     key=f"btn_{categoria}_{producto_seleccionado}"
                 ):
+                    # Solo guarda los baldes seleccionados
                     productos[producto_seleccionado] = estados_baldes.copy()
                     guardar_inventario(inventario)
                     guardar_historial(
@@ -56,10 +67,7 @@ def empleado_inventario_ui(inventario, usuario, opciones_valde, guardar_inventar
                 st.write("Inventario actual:")
                 for p, c in productos.items():
                     if isinstance(c, list):
-                        # Solo muestra "Vacío" si fue seleccionado explícitamente
                         seleccionados = [x for x in c if x != "Vacío" or c.count("Vacío") > 0]
-                        # Pero solo mostramos "Vacío" si el usuario explícitamente lo eligió en algún balde
-                        # (en la práctica, esto ya pasa con el filtro anterior, pero lo dejamos claro)
                         seleccionados = [x for i, x in enumerate(c) if x != "Vacío" or (x == "Vacío" and c[i] == "Vacío")]
                         if seleccionados:
                             st.write(f"- {p}: {', '.join([x for x in c if x != 'Vacío'] + ([x for x in c if x == 'Vacío'] if any(x == 'Vacío' for x in c) else []))}")
