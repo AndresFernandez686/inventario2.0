@@ -8,24 +8,47 @@ def admin_inventario_ui(inventario):
     total_general = 0
     for categoria, productos in inventario.items():
         st.subheader(f"Categoría: {categoria}")
-        total_categoria = sum(productos.values())
-        total_general += total_categoria
-        for p, c in productos.items():
-            texto = f"{c:.2f} kilos" if categoria == "Por Kilos" and c > 0 else (str(c) if c > 0 else "Vacío")
-            st.write(f"- {p}: {texto}")
         if categoria == "Por Kilos":
-            st.markdown(f"**Total en {categoria}: {total_categoria:.2f} kilos**")
+            total_categoria = 0
+            for producto, baldes in productos.items():
+                if isinstance(baldes, list):
+                    llenos = sum(1 for b in baldes if b != "Vacío")
+                    total_categoria += llenos
+                    st.write(f"- {producto}: {', '.join(baldes)} (Llenos: {llenos})")
+                else:
+                    total_categoria += baldes if isinstance(baldes, (int, float)) else 0
+                    st.write(f"- {producto}: {baldes}")
+            st.markdown(f"**Total baldes llenos en {categoria}: {total_categoria}**")
         else:
+            total_categoria = sum(
+                v if isinstance(v, (int, float)) else 0
+                for v in productos.values()
+            )
+            for p, c in productos.items():
+                st.write(f"- {p}: {c if c > 0 else 'Vacío'}")
             st.markdown(f"**Total en {categoria}: {int(total_categoria)}**")
-    st.markdown(f"## Total general: {total_general:.2f}")
+        total_general += total_categoria
+    st.markdown(f"## Total general: {total_general}")
 
     st.divider()
     st.subheader("Descargar inventarios por categoría (CSV)")
     for categoria, productos in inventario.items():
-        df = pd.DataFrame({
-            "Producto": list(productos.keys()),
-            "Cantidad": list(productos.values())
-        })
+        # Para Por Kilos, guarda el detalle por balde en el CSV
+        if categoria == "Por Kilos":
+            productos_csv = []
+            for producto, baldes in productos.items():
+                if isinstance(baldes, list):
+                    estado_baldes = ", ".join(baldes)
+                    llenos = sum(1 for b in baldes if b != "Vacío")
+                    productos_csv.append({"Producto": producto, "Balde": estado_baldes, "Llenos": llenos})
+                else:
+                    productos_csv.append({"Producto": producto, "Balde": str(baldes), "Llenos": baldes if isinstance(baldes, (int, float)) else 0})
+            df = pd.DataFrame(productos_csv)
+        else:
+            df = pd.DataFrame({
+                "Producto": list(productos.keys()),
+                "Cantidad": list(productos.values())
+            })
         csv_bytes = df_to_csv_bytes(df)
         st.download_button(
             label=f"Descargar CSV de {categoria}",
@@ -149,12 +172,3 @@ def admin_delivery_ui(cargar_catalogo_delivery, guardar_catalogo_delivery, carga
 
     if not filtro.empty:
         st.dataframe(filtro.sort_values("Fecha"))
-        csv_bytes = df_to_csv_bytes(filtro)
-        st.download_button(
-            label="Descargar ventas de delivery (CSV)",
-            data=csv_bytes,
-            file_name=f"delivery_ventas_{empleado_sel}_{mes:02d}_{año}.csv".replace(" ", "_"),
-            mime="text/csv"
-        )
-    else:
-        st.warning("No hay ventas con ese filtro.")
