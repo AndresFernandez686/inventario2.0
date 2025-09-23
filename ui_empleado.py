@@ -1,7 +1,8 @@
 # UI y lógica de empleados (Inventario, delivery)
 import streamlit as st
 from datetime import date
-from utils import df_to_csv_bytes
+from utils import df_to_csv_bytes, df_to_excel_bytes
+import pandas as pd
 
 def empleado_inventario_ui(inventario, usuario, opciones_valde, guardar_inventario, guardar_historial):
     st.header("Inventario")
@@ -123,8 +124,15 @@ def empleado_delivery_ui(usuario, cargar_catalogo_delivery, guardar_venta_delive
         )
         st.success("Venta registrada con éxito ✅")
 
-    ventas = cargar_ventas_delivery()
-    if not ventas.empty:
+    ventas_json = cargar_ventas_delivery()
+    if ventas_json and isinstance(ventas_json, list) and all(isinstance(e, dict) for e in ventas_json):
+        ventas = pd.DataFrame(ventas_json)
+        # Normaliza columnas
+        if "fecha" in ventas.columns:
+            ventas["Fecha"] = pd.to_datetime(ventas["fecha"])
+        if "usuario" in ventas.columns:
+            ventas["Usuario"] = ventas["usuario"]
+        
         ventas_hoy = ventas[(ventas["Usuario"] == usuario) & (ventas["Fecha"].dt.date == date.today())]
         if not ventas_hoy.empty:
             st.subheader("Tus ventas de delivery hoy")

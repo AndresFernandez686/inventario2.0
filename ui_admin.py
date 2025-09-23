@@ -1,6 +1,6 @@
 import streamlit as st
 from datetime import date
-from utils import df_to_csv_bytes
+from utils import df_to_csv_bytes, df_to_excel_bytes
 import pandas as pd
 
 def admin_inventario_ui(inventario):
@@ -22,13 +22,25 @@ def admin_inventario_ui(inventario):
                 "Producto": list(productos.keys()),
                 "Cantidad": list(productos.values())
             })
-        csv_bytes = df_to_csv_bytes(df)
-        st.download_button(
-            label=f"Descargar CSV de {categoria}",
-            data=csv_bytes,
-            file_name=f"inventario_{categoria.lower().replace(' ', '_')}.csv",
-            mime="text/csv"
-        )
+        
+        # Botones de descarga en dos columnas
+        col1, col2 = st.columns(2)
+        with col1:
+            csv_bytes = df_to_csv_bytes(df)
+            st.download_button(
+                label=f"📄 Descargar CSV de {categoria}",
+                data=csv_bytes,
+                file_name=f"inventario_{categoria.lower().replace(' ', '_')}.csv",
+                mime="text/csv"
+            )
+        with col2:
+            excel_bytes = df_to_excel_bytes(df)
+            st.download_button(
+                label=f"📊 Descargar Excel de {categoria}",
+                data=excel_bytes,
+                file_name=f"inventario_{categoria.lower().replace(' ', '_')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
 def admin_historial_ui(historial_json):
     st.header("📅 Historial de cargas (por empleado / mes)")
@@ -57,13 +69,25 @@ def admin_historial_ui(historial_json):
 
     if not filtro.empty:
         st.dataframe(filtro.sort_values("Fecha"))
-        csv_bytes = df_to_csv_bytes(filtro)
-        st.download_button(
-            label="Descargar historial filtrado (CSV)",
-            data=csv_bytes,
-            file_name=f"historial_{empleado_sel}_{mes:02d}_{año}.csv".replace(" ", "_"),
-            mime="text/csv"
-        )
+        
+        # Botones de descarga en dos columnas
+        col1, col2 = st.columns(2)
+        with col1:
+            csv_bytes = df_to_csv_bytes(filtro)
+            st.download_button(
+                label="📄 Descargar historial filtrado (CSV)",
+                data=csv_bytes,
+                file_name=f"historial_{empleado_sel}_{mes:02d}_{año}.csv".replace(" ", "_"),
+                mime="text/csv"
+            )
+        with col2:
+            excel_bytes = df_to_excel_bytes(filtro)
+            st.download_button(
+                label="📊 Descargar historial filtrado (Excel)",
+                data=excel_bytes,
+                file_name=f"historial_{empleado_sel}_{mes:02d}_{año}.xlsx".replace(" ", "_"),
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
     else:
         st.warning("No hay registros con ese filtro.")
 
@@ -95,6 +119,26 @@ def admin_delivery_ui(cargar_catalogo_delivery, guardar_catalogo_delivery, carga
         st.write("Productos actuales:")
         df_cat = pd.DataFrame(catalogo)
         st.dataframe(df_cat)
+
+        # Botones de descarga del catálogo
+        st.subheader("Exportar catálogo")
+        col1, col2 = st.columns(2)
+        with col1:
+            csv_bytes = df_to_csv_bytes(df_cat)
+            st.download_button(
+                label="📄 Descargar catálogo (CSV)",
+                data=csv_bytes,
+                file_name="catalogo_delivery.csv",
+                mime="text/csv"
+            )
+        with col2:
+            excel_bytes = df_to_excel_bytes(df_cat)
+            st.download_button(
+                label="📊 Descargar catálogo (Excel)",
+                data=excel_bytes,
+                file_name="catalogo_delivery.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
         st.subheader("Editar / Eliminar")
         nombres = [c["nombre"] for c in catalogo]
@@ -145,3 +189,25 @@ def admin_delivery_ui(cargar_catalogo_delivery, guardar_catalogo_delivery, carga
 
     if not filtro.empty:
         st.dataframe(filtro.sort_values("Fecha"))
+        
+        # Botones de descarga de ventas
+        st.subheader("Exportar ventas filtradas")
+        col1, col2 = st.columns(2)
+        with col1:
+            csv_bytes = df_to_csv_bytes(filtro)
+            st.download_button(
+                label="📄 Descargar ventas (CSV)",
+                data=csv_bytes,
+                file_name=f"ventas_delivery_{empleado_sel}_{mes:02d}_{año}.csv".replace(" ", "_"),
+                mime="text/csv"
+            )
+        with col2:
+            excel_bytes = df_to_excel_bytes(filtro)
+            st.download_button(
+                label="📊 Descargar ventas (Excel)",
+                data=excel_bytes,
+                file_name=f"ventas_delivery_{empleado_sel}_{mes:02d}_{año}.xlsx".replace(" ", "_"),
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+    else:
+        st.info("No hay ventas registradas con ese filtro.")
